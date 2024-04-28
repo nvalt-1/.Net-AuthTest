@@ -36,7 +36,8 @@ public class DummyDatabase : IDatabaseService
         { "incrementAccessFailedCount", IncrementAccessFailedCount },
         { "resetAccessFailedCount", ResetAccessFailedCount },
         { "setLockoutEnabled", SetLockoutEnabled },
-        { "setLockoutEnd", SetLockoutEnd }
+        { "setLockoutEnd", SetLockoutEnd },
+        { "setSecurityStamp", SetSecurityStamp }
     };
 
     private static readonly List<Dictionary<string, string>> Table = [];
@@ -305,4 +306,25 @@ public class DummyDatabase : IDatabaseService
         return Task.FromResult<IList<Dictionary<string, string>>?>(new List<Dictionary<string, string>>());
     }
 
+    private static Task<IList<Dictionary<string, string>>?> SetSecurityStamp(IDictionary<string, object>? parameters)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+        
+        var userId = parameters["@id"] as string;
+        var stamp = parameters["@stamp"] as string;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Task.FromResult<IList<Dictionary<string, string>>?>(null);
+        }
+
+        var row = Table.FirstOrDefault(row => row["ID"] == userId);
+        if (row == null)
+        {
+            return Task.FromResult<IList<Dictionary<string, string>>?>(null);
+        }
+
+        row["SECURITY_STAMP"] = stamp ?? string.Empty;
+        return Task.FromResult<IList<Dictionary<string, string>>?>(new List<Dictionary<string, string>>());
+    }
+    
 }

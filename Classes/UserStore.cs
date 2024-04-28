@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Identity;
 namespace AuthTest.Classes;
 
 public class UserStore<TUser> : IUserPasswordStore<TUser>, 
-    IUserLockoutStore<TUser> 
+    IUserLockoutStore<TUser>,
+    IUserSecurityStampStore<TUser>
     where TUser : User
 {
     private readonly IDatabaseService _databaseService;
@@ -169,6 +170,22 @@ public class UserStore<TUser> : IUserPasswordStore<TUser>,
     }
     
     #endregion IUserLockoutStore Implementation
+
+    #region IUserSecurityStampStore Implementation
+
+    public Task<string?> GetSecurityStampAsync(TUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.SecurityStamp);
+    }
+
+    public async Task SetSecurityStampAsync(TUser user, string stamp, CancellationToken cancellationToken)
+    {
+        user.SecurityStamp = stamp;
+        var parameters = new Dictionary<string, object> { { "@id", user.Id }, { "@stamp", stamp } };
+        await _databaseService.Execute("setSecurityStamp", parameters);
+    }
+    
+    #endregion
     
     public void Dispose()
     {
