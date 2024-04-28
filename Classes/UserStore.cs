@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Identity;
 
 namespace AuthTest.Classes;
 
-public class UserStore<TUser> : IUserPasswordStore<TUser> where TUser : User
+public class UserStore<TUser> : IUserPasswordStore<TUser>, 
+    IUserLockoutStore<TUser> 
+    where TUser : User
 {
     private readonly IDatabaseService _databaseService;
     
@@ -91,7 +93,8 @@ public class UserStore<TUser> : IUserPasswordStore<TUser> where TUser : User
         var result = await _databaseService.Execute("updateUser", parameters);
         return result ? IdentityResult.Success : IdentityResult.Failed();
     }
-    #endregion
+    
+    #endregion IUserStore Implementation
 
     #region IUserPasswordStore Implementation
 
@@ -111,7 +114,61 @@ public class UserStore<TUser> : IUserPasswordStore<TUser> where TUser : User
         var parameters = new Dictionary<string, object> { { "@username", user.UserName ?? "" }, { "@passwordHash", passwordHash ?? "" } };
         await _databaseService.Execute("updatePassword", parameters);
     }
-    #endregion
+    
+    #endregion IUserPasswordStore Implementation
+    
+    #region IUserLockoutStore Implementation
+
+    public Task<int> GetAccessFailedCountAsync(TUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.AccessFailedCount);
+    }
+
+    public Task<bool> GetLockoutEnabledAsync(TUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.LockoutEnabled);
+    }
+
+    public Task<DateTimeOffset?> GetLockoutEndDateAsync(TUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.LockoutEnd);
+    }
+
+    public async Task<int> IncrementAccessFailedCountAsync(TUser user, CancellationToken cancellationToken)
+    {
+        user.AccessFailedCount += 1;
+        var parameters = new Dictionary<string, object> { { "@id", user.Id } };
+        await _databaseService.Execute("incrementAccessFailedCount", parameters);
+        
+        return user.AccessFailedCount;
+    }
+
+    public async Task ResetAccessFailedCountAsync(TUser user, CancellationToken cancellationToken)
+    {
+        user.AccessFailedCount = 0;
+        var parameters = new Dictionary<string, object> { { "@id", user.Id } };
+        await _databaseService.Execute("resetAccessFailedCount", parameters);
+    }
+
+    public async Task SetLockoutEnabledAsync(TUser user, bool enabled, CancellationToken cancellationToken)
+    {
+        user.LockoutEnabled = enabled;
+        var parameters = new Dictionary<string, object> { { "@id", user.Id }, { "@enabled", enabled } };
+        await _databaseService.Execute("setLockoutEnabled", parameters);
+    }
+
+    public async Task SetLockoutEndDateAsync(TUser user, DateTimeOffset? lockoutEnd, CancellationToken cancellationToken)
+    {
+        user.LockoutEnd = lockoutEnd;
+        var parameters = new Dictionary<string, object>
+        {
+            { "@id", user.Id }, 
+            { "@lockoutEnd", lockoutEnd == null ? "" : lockoutEnd }
+        };
+        await _databaseService.Execute("setLockoutEnd", parameters);
+    }
+    
+    #endregion IUserLockoutStore Implementation
     
     public void Dispose()
     {
