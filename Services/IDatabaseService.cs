@@ -24,9 +24,9 @@ public interface IDatabaseService : IDisposable
 
 public class DummyDatabase : IDatabaseService
 {
-    private static Dictionary<string, Func<IDictionary<string, object>?, Task<IList<Dictionary<string, string>>?>>> _storedProcedures = new()
+    private static readonly Dictionary<string, Func<IDictionary<string, object>?, Task<IList<Dictionary<string, string>>?>>> StoredProcedures = new()
     {
-        { "findById",  FindById},
+        { "findById",  FindById },
         { "findByUsername", FindByUsername },
         { "insertUser", InsertUser },
         { "deleteUser", DeleteUser },
@@ -45,23 +45,23 @@ public class DummyDatabase : IDatabaseService
 
     public async Task<bool> Execute(string procName, IDictionary<string, object>? parameters)
     {
-        if (!_storedProcedures.ContainsKey(procName))
+        if (!StoredProcedures.ContainsKey(procName))
         {
             return false;
         }
         
-        var result = await _storedProcedures[procName](parameters);
+        var result = await StoredProcedures[procName](parameters);
         return result != null;
     }
 
     public Task<IList<Dictionary<string, string>>?> Query(string procName, IDictionary<string, object>? parameters)
     {
-        if (!_storedProcedures.ContainsKey(procName))
+        if (!StoredProcedures.ContainsKey(procName))
         {
             return Task.FromResult<IList<Dictionary<string, string>>?>(null);
         }
         
-        return _storedProcedures[procName](parameters);
+        return StoredProcedures[procName](parameters);
     }
 
     public void Dispose()
